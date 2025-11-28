@@ -43,7 +43,28 @@ def homography_apply(H, x1, y1):
     
     return (x2, y2)
 
+def homography_extraction(I1, x, y, w, h):
+    
+    I2 = np.zeros((h, w))
+    
+    H = homography_estimate([0, 0, h, h], [0, w, w, 0], y, x)
+    
+    for (i, j) in np.ndindex((h, w)):
+        x_ext, y_ext = homography_apply(H, [j], [i])
+        x_ext = (int)(x_ext[0])
+        y_ext = (int)(y_ext[0])
+        I2[i,j] = I1[x_ext, y_ext]
+    
+    return I2
 
+I1 = plt.imread('qr-code-wall.png')
+x = [52, 246, 264, 32]
+y = [56, 16, 239, 246]
+I2 = homography_extraction(I1, x, y, 200, 200)
+
+plt.imshow(I1, cmap='gray')
+plt.figure()
+plt.imshow(I2, cmap='gray')
 
 def homography_projection(I1, I2, x, y):
     
@@ -62,18 +83,3 @@ def homography_projection(I1, I2, x, y):
             I_final[i,j,:] = I1[x_proj, y_proj, :]
         
     return I_final
-
-I_qr = plt.imread('qr-code-avin.jpg')
-x_qr = [505, 774, 770, 523]
-y_qr = [355, 350, 617, 622]
-I_background = plt.imread('background.jpg')
-
-I_final = homography_projection(I_background, I_qr, x_qr, y_qr)
-
-#%%
-plt.figure()
-plt.imshow(I_qr)
-plt.figure()
-plt.imshow(I_background)
-plt.figure()
-plt.imshow(I_final)
