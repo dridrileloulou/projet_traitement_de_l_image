@@ -6,6 +6,7 @@ Created on Fri Nov 21 11:17:27 2025
 """
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 def homography_estimate(x1, y1, x2, y2):
     assert(len(x1) == len(y1) == len(x2) == len(y2))
@@ -44,4 +45,35 @@ def homography_apply(H, x1, y1):
 
 
 
+def homography_projection(I1, I2, x, y):
+    
+    h_src, w_src, _ = np.shape(I1)
+    h_dst, w_dst, _ = np.shape(I2)
+    I_final = I2.copy()
+    
+    H = homography_estimate(x, y, [0, 0, h_src, h_src], [0, w_src, w_src, 0])
+    
+    for (i,j) in np.ndindex((h_dst, w_dst)):
+        x_proj, y_proj = homography_apply(H, [j], [i])
+        x_proj = (int)(x_proj[0])
+        y_proj = (int)(y_proj[0])
+        
+        if 0 <= x_proj < h_src and 0 <= y_proj < w_src:
+            I_final[i,j,:] = I1[x_proj, y_proj, :]
+        
+    return I_final
 
+I_qr = plt.imread('qr-code-avin.jpg')
+x_qr = [505, 774, 770, 523]
+y_qr = [355, 350, 617, 622]
+I_background = plt.imread('background.jpg')
+
+I_final = homography_projection(I_background, I_qr, x_qr, y_qr)
+
+#%%
+plt.figure()
+plt.imshow(I_qr)
+plt.figure()
+plt.imshow(I_background)
+plt.figure()
+plt.imshow(I_final)
