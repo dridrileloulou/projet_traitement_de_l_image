@@ -8,6 +8,7 @@ Created on Fri Nov 21 11:17:27 2025
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 def homography_estimate(x1, y1, x2, y2):
     assert(len(x1) == len(y1) == len(x2) == len(y2))
     
@@ -58,13 +59,14 @@ def homography_extraction(I1, x, y, w, h):
     return I2
 
 I1 = plt.imread('qr-code-wall.png')
+
 x = [52, 246, 264, 32]
 y = [56, 16, 239, 246]
 I2 = homography_extraction(I1, x, y, 200, 200)
 
 plt.imshow(I1, cmap='gray')
 plt.figure()
-plt.imshow(I2, cmap='gray')
+plt.imshow(I2, cmap='gray') 
 
 def homography_projection(I1, I2, x, y):
     
@@ -83,3 +85,56 @@ def homography_projection(I1, I2, x, y):
             I_final[i,j,:] = I1[x_proj, y_proj, :]
         
     return I_final
+
+
+""" TEST POUR PROJECTION"""
+
+I3 = plt.imread('affiche_exterieur.jpg')
+I4 = plt.imread('image_rgb.jpg')
+
+# Affiche image pour clic
+
+plt.imshow(I3, cmap='gray')
+plt.title("Cliquez sur les 4 points de l'image")
+points = plt.ginput(4)
+plt.close()
+
+x_2 = np.array([p[0] for p in points])
+y_2 = np.array([p[1] for p in points])
+
+I5 = homography_projection(I4, I3, x_2, y_2)
+plt.imshow(I5)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+plt.show()
+
+
