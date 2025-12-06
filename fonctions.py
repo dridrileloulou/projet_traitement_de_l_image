@@ -9,6 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
+
 def homography_estimate(x1, y1, x2, y2):
     assert(len(x1) == len(y1) == len(x2) == len(y2))
     
@@ -58,15 +59,7 @@ def homography_extraction(I1, x, y, w, h):
     
     return I2
 
-I1 = plt.imread('qr-code-wall.png')
 
-x = [52, 246, 264, 32]
-y = [56, 16, 239, 246]
-I2 = homography_extraction(I1, x, y, 200, 200)
-
-plt.imshow(I1, cmap='gray')
-plt.figure()
-plt.imshow(I2, cmap='gray') 
 
 def homography_projection(I1, I2, x, y):
     
@@ -87,8 +80,68 @@ def homography_projection(I1, I2, x, y):
     return I_final
 
 
-""" TEST POUR PROJECTION"""
 
+
+#Elle ne marche pas encore
+def homography_cross_projection(I, x1, y1, x2, y2) : 
+    h_img, w_img, _ = np.shape(I)
+    
+    x_carre = np.array([0,1,1,0])
+    y_carre = np.array([0,0,1,1])
+    
+    H1 = homography_estimate(x1, y1, x_carre, y_carre)
+    
+    H2 = homography_estimate(x_carre, y_carre, x2, y2)
+    
+    H = np.dot(H2,H1)
+    
+    H_inv = np.linalg.inv(H)
+    
+    I_final = I.copy()
+
+    h, w = I_final.shape[:2]
+    
+    for i in range(h_img):
+        for j in range(w_img):
+            # Appliquer l'homographie inverse pour trouver la position dans l'image source
+            x_proj, y_proj = homography_apply(H, [j], [i])
+            x_proj = int(x_proj[0])
+            y_proj = int(y_proj[0])
+
+            # Vérifier si la position est dans les limites de l'image
+            if 0 <= x_proj < h_img and 0 <= y_proj < w_img:
+                I_final[i, j, :] = I[x_proj, y_proj, :]
+
+    return I_final
+
+    
+plt.close('all')
+
+
+""" TEST pour extraction """
+"""
+I1 = plt.imread('qr-code-wall.png')
+
+x = [52, 246, 264, 32]
+y = [56, 16, 239, 246]
+I2 = homography_extraction(I1, x, y, 200, 200)
+
+plt.imshow(I1, cmap='gray')
+plt.figure()
+plt.imshow(I2, cmap='gray') 
+
+"""
+
+
+
+
+
+
+
+
+
+""" TEST POUR PROJECTION"""
+"""
 I3 = plt.imread('affiche_exterieur.jpg')
 I4 = plt.imread('image_rgb.jpg')
 
@@ -104,35 +157,45 @@ y_2 = np.array([p[1] for p in points])
 
 I5 = homography_projection(I4, I3, x_2, y_2)
 plt.imshow(I5)
+"""
 
 
+""" Test pour projection croisée"""
+"""
+I6 = plt.imread('affiche_exterieur.jpg')
 
+plt.imshow(I6)
+plt.title("Cliquez sur les 4 points de l'image")
+points = plt.ginput(4)
+plt.close()
 
+plt.imshow(I6, cmap='gray')
+plt.title("Cliquez sur les 4 points de l'image")
+points_2 = plt.ginput(4)
+plt.close()
 
+x_3 = np.array([p[0] for p in points])
+y_3 = np.array([p[1] for p in points])
+x_4 = np.array([p[0] for p in points_2])
+y_4 = np.array([p[1] for p in points_2])
 
+I7 = homography_cross_projection(I6,x_3,y_3,x_4,y_4)
+plt.imshow(I7)
 
+"""
 
+""" Test sans image fournit par le chat de Mistral"""
+x1 = np.array([10, 90, 90, 10])
+y1 = np.array([10, 10, 90, 90])
+x2 = np.array([20, 80, 80, 20])
+y2 = np.array([20, 20, 80, 80])
 
+I_test = np.zeros((100, 100, 3))
+I_test[10:90, 10:90, :] = 1  # Zone blanche pour visualiser
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+I_result = homography_cross_projection(I_test, x1, y1, x2, y2)
+plt.imshow(I_result)
+plt.show()
 
 
 plt.show()
