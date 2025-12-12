@@ -126,6 +126,19 @@ def homography_cross_projection(I, x1, y1, x2, y2) :
             if 0 <= x_proj < w_img and 0 <= y_proj < h_img:
                 I_final[i, j, :] = I_src[y_proj, x_proj, :]
 
+    for i in range(h_img):
+        for j in range(w_img):
+            if not point_in_quad(j, i, x1, y1):
+                continue
+            # Appliquer l'homographie inverse pour trouver la position dans l'image source
+            x_proj, y_proj = homography_apply(H, [j], [i])
+            x_proj = int(x_proj[0])
+            y_proj = int(y_proj[0])
+
+            # Vérifier si la position est dans les limites de l'image
+            if 0 <= x_proj < w_img and 0 <= y_proj < h_img:
+                I_final[i, j, :] = I_src[y_proj, x_proj, :]
+
     return I_final
 
     
