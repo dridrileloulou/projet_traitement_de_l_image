@@ -141,6 +141,13 @@ def homography_cross_projection(I, x1, y1, x2, y2) :
 
     return I_final
 
+
+def I_to_MIB(I):
+    h, w, _ = I.shape
+    M = np.ones((h,w))
+    B = [(0,0), (h-1, w-1)]
+    
+    return M, I, B
     
 plt.close('all')
 
@@ -158,14 +165,6 @@ plt.figure()
 plt.imshow(I2, cmap='gray') 
 
 """
-
-
-
-
-
-
-
-
 
 """ TEST POUR PROJECTION"""
 """
@@ -188,7 +187,7 @@ plt.imshow(I5)
 
 
 """ Test pour projection croisée"""
-
+"""
 I6 = plt.imread('affiche_exterieur.jpg')
 
 plt.imshow(I6)
@@ -212,23 +211,13 @@ y_4 = np.array([p[1] for p in points_2])
 I7 = homography_cross_projection(I6,x_3,y_3,x_4,y_4)
 plt.axis('off')
 plt.imshow(I7)
-
-
-
-""" Test sans image fournit par le chat de Mistral"""
-"""
-x1 = np.array([10, 90, 90, 10])
-y1 = np.array([10, 10, 90, 90])
-x2 = np.array([20, 80, 80, 20])
-y2 = np.array([20, 20, 80, 80])
-
-I_test = np.zeros((100, 100, 3))
-I_test[10:90, 10:90, :] = 1  # Zone blanche pour visualiser
-
-I_result = homography_cross_projection(I_test, x1, y1, x2, y2)
-plt.imshow(I_result)
 """
 
+""" Test I_to_MIB """
+
+I8 = plt.imread('affiche_exterieur.jpg')
+
+M, I, B = I_to_MIB(I8)
 
 plt.show()
 
