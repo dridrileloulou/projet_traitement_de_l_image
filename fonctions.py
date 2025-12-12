@@ -49,13 +49,13 @@ def homography_extraction(I1, x, y, w, h):
     
     I2 = np.zeros((h, w))
     
-    H = homography_estimate([0, 0, h, h], [0, w, w, 0], y, x)
+    H = homography_estimate([0, w-1, w-1, 0], [0, 0, h-1, h-1], x, y)
     
     for (i, j) in np.ndindex((h, w)):
         x_ext, y_ext = homography_apply(H, [j], [i])
         x_ext = (int)(x_ext[0])
         y_ext = (int)(y_ext[0])
-        I2[i,j] = I1[x_ext, y_ext]
+        I2[i,j] = I1[y_ext, x_ext]
     
     return I2
 
@@ -67,20 +67,31 @@ def homography_projection(I1, I2, x, y):
     h_dst, w_dst, _ = np.shape(I2)
     I_final = I2.copy()
     
-    H = homography_estimate(x, y, [0, 0, h_src, h_src], [0, w_src, w_src, 0])
+    H = homography_estimate(x, y, [0, w_src-1, w_src-1, 0], [0, 0, h_src-1, h_src-1])
     
     for (i,j) in np.ndindex((h_dst, w_dst)):
         x_proj, y_proj = homography_apply(H, [j], [i])
         x_proj = (int)(x_proj[0])
         y_proj = (int)(y_proj[0])
         
-        if 0 <= x_proj < h_src and 0 <= y_proj < w_src:
-            I_final[i,j,:] = I1[x_proj, y_proj, :]
+        if 0 <= x_proj < w_src and 0 <= y_proj < h_src:
+            I_final[i,j,:] = I1[y_proj, x_proj, :]
         
     return I_final
 
 
 
+def point_in_quad(px, py, xq, yq):
+    def cross(x1,y1,x2,y2,x3,y3):
+        return (x2-x1)*(y3-y1) - (y2-y1)*(x3-x1)
+
+    s = []
+    for k in range(4):
+        x1,y1 = xq[k], yq[k]
+        x2,y2 = xq[(k+1)%4], yq[(k+1)%4]
+        s.append(cross(x1,y1,x2,y2,px,py))
+
+    return (all(v >= 0 for v in s) or all(v <= 0 for v in s))
 
 #Elle ne marche pas encore
 def homography_cross_projection(I, x1, y1, x2, y2) : 
@@ -97,20 +108,23 @@ def homography_cross_projection(I, x1, y1, x2, y2) :
     
     H_inv = np.linalg.inv(H)
     
+    I_src = I.copy()
     I_final = I.copy()
 
     h, w = I_final.shape[:2]
     
     for i in range(h_img):
         for j in range(w_img):
+            if not point_in_quad(j, i, x2, y2):
+                continue
             # Appliquer l'homographie inverse pour trouver la position dans l'image source
-            x_proj, y_proj = homography_apply(H, [j], [i])
+            x_proj, y_proj = homography_apply(H_inv, [j], [i])
             x_proj = int(x_proj[0])
             y_proj = int(y_proj[0])
 
             # Vérifier si la position est dans les limites de l'image
-            if 0 <= x_proj < h_img and 0 <= y_proj < w_img:
-                I_final[i, j, :] = I[x_proj, y_proj, :]
+            if 0 <= x_proj < w_img and 0 <= y_proj < h_img:
+                I_final[i, j, :] = I_src[y_proj, x_proj, :]
 
     return I_final
 
