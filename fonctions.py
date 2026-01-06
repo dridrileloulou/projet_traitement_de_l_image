@@ -7,6 +7,7 @@ Created on Fri Nov 21 11:17:27 2025
 
 import numpy as np
 import matplotlib.pyplot as plt
+import sys
 
 def homography_estimate(x1, y1, x2, y2):
     assert(len(x1) == len(y1) == len(x2) == len(y2))
@@ -233,148 +234,176 @@ def MIB_fusion(*MIBS):
 
 plt.close('all')
 
-""" TEST pour extraction """
-"""
-I1 = plt.imread('qr-code-wall.png')
+if len(sys.argv) <2:
+    print("Usage: python3 fonctions.py <test_name>")
+    print("Available tests: extraction, projection, cross_projection, I_to_MIB, MIB_homography, MIB_fusion")
+    print("Other usage : python3 fonctions.py project <number of images> <image1> <image2> ... <imageN>")
+    sys.exit(1)
 
-x = [52, 246, 264, 32]
-y = [56, 16, 239, 246]
-I2 = homography_extraction(I1, x, y, 200, 200)
+commande = sys.argv[1]
 
-plt.imshow(I1, cmap='gray')
-plt.figure()
-plt.imshow(I2, cmap='gray') 
+# --- TEST POUR EXTRACTION ---
+if commande == "extraction":
+    I1 = plt.imread('qr-code-wall.png')
+    x = [52, 246, 264, 32]
+    y = [56, 16, 239, 246]
+    I2 = homography_extraction(I1, x, y, 200, 200)
+    
+    plt.subplot(1, 2, 1)
+    plt.imshow(I1, cmap='gray')
+    plt.title("Original")
+    plt.subplot(1, 2, 2)
+    plt.imshow(I2, cmap='gray')
+    plt.title("Extraction")
+    plt.show()
 
-"""
+# --- TEST POUR PROJECTION ---
+elif commande == "projection":
+    I3 = plt.imread('affiche_exterieur.jpg')
+    I4 = plt.imread('image_rgb.jpg')
 
-""" TEST POUR PROJECTION"""
-"""
-I3 = plt.imread('affiche_exterieur.jpg')
-I4 = plt.imread('image_rgb.jpg')
+    plt.imshow(I3)
+    plt.title("Cliquez sur les 4 points de destination")
+    points = plt.ginput(4)
+    plt.close()
 
-# Affiche image pour clic
+    x_2 = np.array([p[0] for p in points])
+    y_2 = np.array([p[1] for p in points])
 
-plt.imshow(I3, cmap='gray')
-plt.title("Cliquez sur les 4 points de l'image")
-points = plt.ginput(4)
-plt.close()
+    I5 = homography_projection(I4, I3, x_2, y_2)
+    plt.imshow(I5)
+    plt.axis('off')
+    plt.show()
 
-x_2 = np.array([p[0] for p in points])
-y_2 = np.array([p[1] for p in points])
+# --- TEST POUR PROJECTION CROISÉE ---
+elif commande == "cross_projection":
+    I6 = plt.imread('affiche_exterieur.jpg')
 
-I5 = homography_projection(I4, I3, x_2, y_2)
-plt.imshow(I5)
-"""
+    plt.imshow(I6)
+    plt.title("Cliquez sur les 4 points source")
+    points = plt.ginput(4)
+    plt.close()
 
+    plt.imshow(I6)
+    plt.title("Cliquez sur les 4 points destination")
+    points_2 = plt.ginput(4)
+    plt.close()
 
-""" Test pour projection croisée"""
-"""
-I6 = plt.imread('affiche_exterieur.jpg')
+    x_3 = np.array([p[0] for p in points])
+    y_3 = np.array([p[1] for p in points])
+    x_4 = np.array([p[0] for p in points_2])
+    y_4 = np.array([p[1] for p in points_2])
 
-plt.imshow(I6)
-plt.axis('off')
-plt.title("Cliquez sur les 4 points de l'image")
-points = plt.ginput(4)
-plt.close()
+    I7 = homography_cross_projection(I6, x_3, y_3, x_4, y_4)
+    plt.imshow(I7)
+    plt.axis('off')
+    plt.show()
 
+# --- TEST POUR I_to_MIB ---
+elif commande == "I_to_MIB":
+    I8 = plt.imread('affiche_exterieur.jpg')
+    (M, I, B) = I_to_MIB(I8)
+    print(f"M : {M}\nI : {I}\nB : {B}")
 
-plt.imshow(I6, cmap='gray')
-plt.axis('off')
-plt.title("Cliquez sur les 4 points de l'image")
-points_2 = plt.ginput(4)
-plt.close()
+# --- TEST POUR MIB_HOMOGRAPHY ---
+elif commande == "MIB_homography":
+    I9 = plt.imread('affiche_exterieur.jpg')
+    MIB0 = I_to_MIB(I9)
 
-x_3 = np.array([p[0] for p in points])
-y_3 = np.array([p[1] for p in points])
-x_4 = np.array([p[0] for p in points_2])
-y_4 = np.array([p[1] for p in points_2])
+    x1 = np.array([0, 10, 10, 0], dtype=float)
+    y1 = np.array([0, 0, 10, 10], dtype=float)
 
-I7 = homography_cross_projection(I6,x_3,y_3,x_4,y_4)
-plt.axis('off')
-plt.imshow(I7)
-"""
+    # Rotation 45° autour du centre (5,5)
+    theta = np.deg2rad(45)
+    c, s = np.cos(theta), np.sin(theta)
+    cx, cy = 5.0, 5.0
 
-""" Test I_to_MIB """
-"""
-I8 = plt.imread('affiche_exterieur.jpg')
+    xt = x1 - cx
+    yt = y1 - cy
+    x2 = c*xt - s*yt + cx
+    y2 = s*xt + c*yt + cy
 
-(M, I, B) = I_to_MIB(I8)
-print("M :", M)
-print("I :", I)
-print("B :", B)
-"""
+    H = homography_estimate(x1, y1, x2, y2)
+    (M, I, B) = MIB_homography(MIB0, H)
+    
+    print(f"M : {M}\nB : {B}")
+    plt.imshow(I)
+    plt.show()
 
-""" Test MIB_Homography """
-"""
-I9 = plt.imread('affiche_exterieur.jpg')
-MIB0 = I_to_MIB(I9)
+# --- TEST POUR MIB_FUSION ---
+elif commande == "MIB_fusion":
+    I9  = plt.imread('TestFusion1.png')
+    I10 = plt.imread('TestFusion2.png')
 
-x1 = np.array([0, 10, 10, 0], dtype=float)
-y1 = np.array([0, 0, 10, 10], dtype=float)
+    plt.imshow(I9)
+    plt.title("Image 1 (reference) : cliquez 4 points")
+    pts1 = plt.ginput(4, timeout=0)
+    plt.close()
 
-# Rotation 45° autour du centre (5,5)
-theta = np.deg2rad(45)
-c, s = np.cos(theta), np.sin(theta)
-cx, cy = 5.0, 5.0
+    plt.imshow(I10)
+    plt.title("Image 2 : cliquez les 4 points correspondants")
+    pts2 = plt.ginput(4, timeout=0)
+    plt.close()
 
-def rotate_points(x, y, cx, cy, c, s):
-    xt = x - cx
-    yt = y - cy
-    xr = c*xt - s*yt + cx
-    yr = s*xt + c*yt + cy
-    return xr, yr
+    x1 = np.array([p[0] for p in pts1], dtype=float)
+    y1 = np.array([p[1] for p in pts1], dtype=float)
+    x2 = np.array([p[0] for p in pts2], dtype=float)
+    y2 = np.array([p[1] for p in pts2], dtype=float)
 
-x2, y2 = rotate_points(x1, y1, cx, cy, c, s)
+    H = homography_estimate(x2, y2, x1, y1)
 
-H = homography_estimate(x1, y1, x2, y2)
+    MIB1 = I_to_MIB(I9)
+    MIB2 = I_to_MIB(I10)
+    MIB2_warp = MIB_homography(MIB2, H)
 
-(M, I, B) = MIB_homography(MIB0, H)
-print("M :", M)
-print("I :", I)
-print("B :", B)
+    M_f, I_f, B_f = MIB_fusion(MIB1, MIB2_warp)
 
-plt.imshow(I)
-plt.show()
-"""
+    print("B_f (bounding box globale) =", B_f)
+    plt.title("Fusion (MIB_fusion)")
+    plt.imshow(I_f.astype(I9.dtype) if I_f.dtype != I9.dtype else I_f)
+    plt.show()
 
+# --- Pour le projet ---
+elif commande == "project":
+    num_images = int(sys.argv[2])
+    images = []
+    for i in range(num_images):
+        img_path = sys.argv[3 + i]
+        img = plt.imread(img_path)
+        images.append(img)
+    
+    plt.imshow(images[0])
+    plt.title(f"Cliquez sur les 4 points de l'image 1")
+    points_ref = plt.ginput(4, timeout=0)
+    plt.axis('off')
+    plt.close()
+    x_ref = np.array([p[0] for p in points_ref], dtype=float)
+    y_ref = np.array([p[1] for p in points_ref], dtype=float)
+    
+    MIBs = []
+    MIBs.append(I_to_MIB(images[0]))
 
-""" Test MIB_Fusion """
-I9  = plt.imread('TestFusion1.png')
-I10 = plt.imread('TestFusion2.png')
+    for i in range(1, num_images):
+        plt.imshow(images[i])
+        plt.title(f"Image {i+1} : cliquez les 4 points correspondants")
+        points = plt.ginput(4, timeout=0)
+        plt.axis('off')
+        plt.close()
 
-plt.figure()
-plt.imshow(I9)
-plt.axis('off')
-plt.title("Image 1 (reference) : cliquez 4 points")
-pts1 = plt.ginput(4, timeout=0)
-plt.close()
+        x = np.array([p[0] for p in points], dtype=float)
+        y = np.array([p[1] for p in points], dtype=float)
 
-plt.figure()
-plt.imshow(I10)
-plt.axis('off')
-plt.title("Image 2 : cliquez les 4 points correspondants")
-pts2 = plt.ginput(4, timeout=0)
-plt.close()
+        H = homography_estimate(x, y, x_ref, y_ref)
+        
+        MIB_courant = I_to_MIB(images[i])
+        MIBs.append(MIB_homography(MIB_courant, H))
 
-x1 = np.array([p[0] for p in pts1], dtype=float)
-y1 = np.array([p[1] for p in pts1], dtype=float)
-x2 = np.array([p[0] for p in pts2], dtype=float)
-y2 = np.array([p[1] for p in pts2], dtype=float)
+    M_f, I_f, B_f = MIB_fusion(*MIBs)
 
-H = homography_estimate(x2, y2, x1, y1)
-
-MIB1 = I_to_MIB(I9)
-MIB2 = I_to_MIB(I10)
-
-MIB2_warp = MIB_homography(MIB2, H)
-
-M_f, I_f, B_f = MIB_fusion(MIB1, MIB2_warp)
-
-print("B_f (bounding box globale) =", B_f)
-print("I_f shape =", I_f.shape)
-
-plt.figure()
-plt.title("Fusion (MIB_fusion)")
-plt.imshow(I_f.astype(I9.dtype) if I_f.dtype != I9.dtype else I_f)
-
-plt.show()
+    print("B_f (bounding box globale) =", B_f)
+    plt.title("Fusion (MIB_fusion)")
+    plt.imshow(I_f.astype(images[0].dtype) if I_f.dtype != images[0].dtype else I_f)
+    plt.axis('off')
+    plt.show()
+else:
+    print(f"Erreur : Le test '{commande}' n'est pas reconnu.")
