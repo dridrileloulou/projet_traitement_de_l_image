@@ -8,6 +8,39 @@ Created on Fri Nov 21 11:17:27 2025
 import numpy as np
 import matplotlib.pyplot as plt
 import sys
+import math
+
+
+def perimetre(pt1, pt2, pt3):
+    p = (math.dist(pt1, pt2) + math.dist(pt2, pt3)) * 2 
+
+    return p
+
+def aire(pt1, pt2, pt3, pt4):
+    x = [pt1[0], pt2[0], pt3[0], pt4[0]]
+    y = [pt1[1], pt2[1], pt3[1], pt4[1]]
+    a = 0.5 * abs(x[0]*y[1] + x[1]*y[2] + x[2]*y[3] + x[3]*y[0] - 
+                 (y[0]*x[1] + y[1]*x[2] + y[2]*x[3] + y[3]*x[0]))
+    return a
+
+def aire_carre_3pts(pt1, pt2, pt3):
+    """
+    Calcule l'aire à partir de 3 points d'un carré.
+    On suppose que pt2 est le sommet de l'angle droit (entre pt1 et pt3).
+    """
+    # 1. Estimation du 4ème point (pt4)
+    # Formule vectorielle : pt4 = pt1 + pt3 - pt2
+    pt4_x = pt1[0] + pt3[0] - pt2[0]
+    pt4_y = pt1[1] + pt3[1] - pt2[1]
+    pt4 = (pt4_x, pt4_y)
+
+    # 2. Utilisation de ta formule du lacé avec les 4 points
+    x = [pt1[0], pt2[0], pt3[0], pt4[0]]
+    y = [pt1[1], pt2[1], pt3[1], pt4[1]]
+    
+    a = 0.5 * abs(x[0]*y[1] + x[1]*y[2] + x[2]*y[3] + x[3]*y[0] - 
+                 (y[0]*x[1] + y[1]*x[2] + y[2]*x[3] + y[3]*x[0]))
+    return a
 
 def homography_estimate(x1, y1, x2, y2):
     assert(len(x1) == len(y1) == len(x2) == len(y2))
@@ -45,17 +78,23 @@ def homography_apply(H, x1, y1):
     return (x2, y2)
 
 def homography_extraction(I1, x, y, w, h):
-    
-    I2 = np.zeros((h, w))
-    
+
+    if len(I1.shape) == 3:
+        I2 = np.zeros((h, w, I1.shape[2]), dtype=I1.dtype)
+    else :
+        I2 = np.zeros((h, w), dtype=I1.dtype)
+
     H = homography_estimate([0, w-1, w-1, 0], [0, 0, h-1, h-1], x, y)
     
     for (i, j) in np.ndindex((h, w)):
         x_ext, y_ext = homography_apply(H, [j], [i])
         x_ext = (int)(x_ext[0])
         y_ext = (int)(y_ext[0])
-        I2[i,j] = I1[y_ext, x_ext]
-    
+        if len(I1.shape) == 2:
+            I2[i,j] = I1[y_ext, x_ext]
+        else :
+            I2[i,j,:] = I1[y_ext, x_ext,:]
+
     return I2
 
 
@@ -362,6 +401,46 @@ elif commande == "MIB_fusion":
     plt.title("Fusion (MIB_fusion)")
     plt.imshow(I_f.astype(I9.dtype) if I_f.dtype != I9.dtype else I_f)
     plt.show()
+
+# --- pour le challenge ---
+elif commande == "challenge":
+    I = plt.imread('challenge1.png')
+    plt.imshow(I)
+    plt.title("Cliquez sur les 4 points pour extraire")
+    points = plt.ginput(4, timeout=0)
+    plt.axis('off')
+    plt.close()
+    x = np.array([p[0] for p in points], dtype=float)
+    y = np.array([p[1] for p in points], dtype=float)
+    I_extracted = homography_extraction(I, x, y, 500, 500)
+    plt.imshow(I_extracted)
+    plt.title("Image extraite")
+    plt.axis('off')
+
+    resultats = []
+    for i in range(9):
+        plt.imshow(I_extracted)
+        plt.title(f"Carré {i+1} : cliquez sur les 3 points")
+        pts = plt.ginput(3, timeout=0)
+        plt.axis('off')
+        plt.close()
+
+        p = perimetre(pts[0], pts[1], pts[2])
+        s = aire_carre_3pts(pts[0], pts[1], pts[2])
+
+        resultats.append({
+            'id': i + 1,
+            'perimetre': p,
+            'surface': s
+        })
+
+    resultats.sort(key=lambda x: x['surface'], reverse=True)
+
+    surface_max = resultats[0]['surface']
+    print("\nClassement par surface décroissante :")
+    for res in resultats:
+        part_relative = res['surface'] / surface_max
+        print(f"Carré {res['id']} : Surface = {res['surface']:.2f} (Part = {part_relative:.2f}), Périmètre = {res['perimetre']:.2f}")
 
 # --- Pour le projet ---
 elif commande == "project":
