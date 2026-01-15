@@ -437,7 +437,7 @@ elif commande == "challenge":
     resultats.sort(key=lambda x: x['surface'], reverse=True)
 
     surface_max = resultats[0]['surface']
-    print("\nClassement par surface décroissante :")
+    print("Classement par surface décroissante :")
     for res in resultats:
         part_relative = res['surface'] / surface_max
         print(f"Carré {res['id']} : Surface = {res['surface']:.2f} (Part = {part_relative:.2f}), Périmètre = {res['perimetre']:.2f}")
@@ -445,44 +445,46 @@ elif commande == "challenge":
 # --- Pour le projet ---
 elif commande == "project":
     num_images = int(sys.argv[2])
-    images = []
-    for i in range(num_images):
-        img_path = sys.argv[3 + i]
-        img = plt.imread(img_path)
-        images.append(img)
-    
-    plt.imshow(images[0])
-    plt.title(f"Cliquez sur les 4 points de l'image 1")
-    points_ref = plt.ginput(4, timeout=0)
-    plt.axis('off')
-    plt.close()
-    x_ref = np.array([p[0] for p in points_ref], dtype=float)
-    y_ref = np.array([p[1] for p in points_ref], dtype=float)
-    
-    MIBs = []
-    MIBs.append(I_to_MIB(images[0]))
+    if num_images < 2:
+        sys.exit(1)
+
+    img_start = plt.imread(sys.argv[3])
+    mib_fusion = I_to_MIB(img_start)
 
     for i in range(1, num_images):
-        plt.imshow(images[i])
-        plt.title(f"Image {i+1} : cliquez les 4 points correspondants")
-        points = plt.ginput(4, timeout=0)
+        img_next = plt.imread(sys.argv[3 + i])
+
+        plt.figure(figsize=(10, 7))
+        plt.imshow(mib_fusion[1])
         plt.axis('off')
+        plt.title("FUSION ACTUELLE : Cliquez sur les 4 points de référence")
+        pts_ref = plt.ginput(4, timeout=0)
         plt.close()
 
-        x = np.array([p[0] for p in points], dtype=float)
-        y = np.array([p[1] for p in points], dtype=float)
+        plt.figure(figsize=(10, 7))
+        plt.imshow(img_next)
+        plt.axis('off')
+        plt.title("IMAGE {i+1} : Cliquez sur les 4 points correspondants")
+        pts_next = plt.ginput(4, timeout=0)
+        plt.close()
 
-        H = homography_estimate(x, y, x_ref, y_ref)
+        x_ref = np.array([p[0] for p in pts_ref], dtype=float)
+        y_ref = np.array([p[1] for p in pts_ref], dtype=float)
+        x_next = np.array([p[0] for p in pts_next], dtype=float)
+        y_next = np.array([p[1] for p in pts_next], dtype=float)
+
+        (x_min_f, y_min_f) = mib_fusion[2][0]
+        H = homography_estimate(x_next, y_next, x_ref + x_min_f, y_ref + y_min_f)
         
-        MIB_courant = I_to_MIB(images[i])
-        MIBs.append(MIB_homography(MIB_courant, H))
+        mib_next = I_to_MIB(img_next)
+        mib_next_warped = MIB_homography(mib_next, H)
+        mib_fusion = MIB_fusion(mib_fusion, mib_next_warped)
 
-    M_f, I_f, B_f = MIB_fusion(*MIBs)
-
-    print("B_f (bounding box globale) =", B_f)
-    plt.title("Fusion (MIB_fusion)")
-    plt.imshow(I_f.astype(images[0].dtype) if I_f.dtype != images[0].dtype else I_f)
+    M_f, I_f, B_f = mib_fusion
+    plt.figure(figsize=(12, 8))
+    plt.imshow(I_f)
     plt.axis('off')
+    plt.title("Mosaique finale")
     plt.show()
 else:
     print(f"Erreur : Le test '{commande}' n'est pas reconnu.")
